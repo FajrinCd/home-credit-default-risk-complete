@@ -35,7 +35,7 @@ try:
     previous_application = pd.read_csv(base_path + 'previous_application.csv')
     bureau = pd.read_csv(base_path + 'bureau.csv')
     bureau_balance = pd.read_csv(base_path + 'bureau_balance.csv')
-    pos_cash_balance = pd.read_csv(base_path + 'POS_CASH_balance.csv')
+    pos_cash_balance = pd.read_csv(base_path + 'POS_CASH_BALANCE.csv')
     installments_payments = pd.read_csv(base_path + 'installments_payments.csv')
     credit_card_balance = pd.read_csv(base_path + 'credit_card_balance.csv')
     print("All datasets loaded successfully.")
