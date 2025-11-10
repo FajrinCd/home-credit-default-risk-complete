@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Active-success)
 
-## 📑 Table of Contents
+## Table of Contents
 - [Project Description](#project-description)
 - [Key Features](#key-features)
 - [Dependencies](#dependencies)
@@ -18,7 +18,7 @@
 
 ---
 
-## 🧠 Project Description
+## Project Description
 This project is a complete implementation of the Kaggle competition **Home Credit Default Risk**.  
 It predicts the probability of a client defaulting on a loan based on application and credit history data.  
 The pipeline covers the full data science process — from data loading to submission file creation —  
@@ -28,7 +28,7 @@ The code is **universal** and can run in various environments (Google Colab, Jup
 
 ---
 
-## 🚀 Key Features
+## Key Features
 - **Data Loading** – Loads all Home Credit datasets (`application_train`, `application_test`, etc.).
 - **Data Exploration** – Inspects missing values, data types, duplicates, and anomalies.
 - **Preprocessing** – Handles missing values, outliers (IQR capping), normalization, and one-hot encoding.
@@ -40,7 +40,7 @@ The code is **universal** and can run in various environments (Google Colab, Jup
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 Install the required Python libraries before running the code:
 ```bash
 pip install pandas numpy matplotlib seaborn scikit-learn imbalanced-learn shap
@@ -48,7 +48,7 @@ pip install pandas numpy matplotlib seaborn scikit-learn imbalanced-learn shap
 
 ---
 
-## ⚙️ Installation and Setup
+## Installation and Setup
 
 1. **Clone this repository**
 
@@ -66,7 +66,7 @@ pip install pandas numpy matplotlib seaborn scikit-learn imbalanced-learn shap
 
 ---
 
-## ▶️ Usage
+## Usage
 
 ### 1. Run the Main Code
 
@@ -90,7 +90,7 @@ python home_credit_model.py
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 home-credit-default-risk-complete/
@@ -106,7 +106,7 @@ home-credit-default-risk-complete/
 
 ---
 
-## 📂 Data Folder
+## Data Folder
 
 This folder stores all datasets used in the **Home Credit Default Risk** project.
 Each file provides information about client applications, credit history, and payment performance.
@@ -121,11 +121,11 @@ Each file provides information about client applications, credit history, and pa
 | **credit_card_balance.csv**                          | Monthly balance data for previous credit cards.                                         |
 | **installments_payment.csv**                         | Payment history for previous loans (both made and missed).                              |
 
-> 💡 Tip: Store all datasets inside the `data/` folder for easier access, or adjust file paths in your code if stored elsewhere.
+> Tip: Store all datasets inside the `data/` folder for easier access, or adjust file paths in your code if stored elsewhere.
 
 ---
 
-## 📊 Results and Models
+## Results and Models
 
 * **Best Model:** Random Forest or Voting Classifier (ROC-AUC ≈ 0.75+, depending on tuning).
 * **Evaluation:** ROC curves visualize performance; SHAP highlights key predictive features like `EXT_SOURCE_2`.
@@ -133,7 +133,7 @@ Each file provides information about client applications, credit history, and pa
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome!
 
@@ -143,7 +143,7 @@ Contributions are welcome!
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **MIT License**.
 You are free to use, modify, and distribute this project for educational or non-commercial purposes.
