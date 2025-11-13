@@ -66,25 +66,10 @@ for name, df in zip(dataframe_names, dataframes):
     print("Proposed strategy: Review high missing percentages; impute or drop as needed.")
     print("\n")
 
-    # Convert data types
-    for col in df.select_dtypes(include='object').columns:
-        try:
-            df[col] = pd.to_numeric(df[col])
-        except ValueError:
-            try:
-                df[col] = pd.to_datetime(df[col])
-            except ValueError:
-                pass
-    print(f"Data types updated for {name}.")
-
     # Remove duplicates
     initial_rows = len(df)
     df.drop_duplicates(inplace=True)
     print(f"Duplicates removed for {name}: {initial_rows - len(df)} rows dropped.")
-
-    # Anomalies: Basic check
-    print(f"Anomalies for {name}: Review descriptive stats and value counts manually.")
-    print("\n")
 
 # Check for Orphan Foreign Keys
 print("--- Checking for orphan foreign keys ---")
