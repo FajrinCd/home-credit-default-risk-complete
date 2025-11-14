@@ -259,7 +259,7 @@ results = {}
 for name, model in models.items():
     if name == "Logistic Regression":
         param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
-        grid_search = RandomizedSearchCV(LogisticRegression(random_state=42, solver='liblinear'), param_grid, n_iter=5, cv=3, scoring='roc_auc', random_state=42, n_jobs=-1)
+        grid_search = RandomizedSearchCV(LogisticRegression(random_state=42, solver='liblinear'), param_grid, n_iter=5, cv=3, scoring='roc_auc', random_state=42, n_jobs=1)
         grid_search.fit(X_train, y_train)
         model = grid_search.best_estimator_
     model.fit(X_train, y_train)
@@ -272,7 +272,7 @@ for name, model in models.items():
 
 # Hyperparameter Tuning for Random Forest
 param_dist = {'n_estimators': [100, 200], 'max_depth': [10, 20, None], 'min_samples_split': [2, 5], 'min_samples_leaf': [1, 2], 'bootstrap': [True, False]}
-random_search = RandomizedSearchCV(RandomForestClassifier(random_state=42, n_jobs=-1), param_dist, n_iter=5, cv=3, scoring='roc_auc', random_state=42, n_jobs=-1)
+random_search = RandomizedSearchCV(RandomForestClassifier(random_state=42, n_jobs=1), param_dist, n_iter=5, cv=3, scoring='roc_auc', random_state=42, n_jobs=1)
 random_search.fit(X_resampled_selected, y_resampled)
 best_rf_model = random_search.best_estimator_
 
