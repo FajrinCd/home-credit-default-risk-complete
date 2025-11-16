@@ -8,14 +8,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import GradientBoostingClassifier, VotingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, VotingClassifier, RandomForestClassifier
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve, auc
 import shap
@@ -54,7 +54,7 @@ for name, df in zip(dataframe_names, dataframes):
     print(df.head())
     print("\n")
 
-# Handling Missing Values, Data Types, Duplicates, Anomalies
+#  Checking Missing Values and Handling Duplicates
 for name, df in zip(dataframe_names, dataframes):
     print(f"--- Missing value analysis for {name} ---")
     missing_values = df.isnull().sum()
@@ -63,7 +63,6 @@ for name, df in zip(dataframe_names, dataframes):
     missing_info = pd.DataFrame({'Missing Count': missing_values, 'Missing Percentage (%)': missing_percentage})
     missing_info = missing_info.sort_values(by='Missing Percentage (%)', ascending=False)
     print(missing_info)
-    print("Proposed strategy: Review high missing percentages; impute or drop as needed.")
     print("\n")
 
     # Remove duplicates
@@ -194,16 +193,12 @@ application_test_merged = pd.get_dummies(application_test_merged, columns=catego
 
 # Create New Numerical Features
 epsilon = 1e-6
-application_train_merged['INCOME_CREDIT_RATIO'] = application_train_merged['AMT_INCOME_TOTAL'] / (application_train_merged['AMT_CREDIT_x'] + epsilon)
-application_test_merged['INCOME_CREDIT_RATIO'] = application_test_merged['AMT_INCOME_TOTAL'] / (application_test_merged['AMT_CREDIT_x'] + epsilon)
-application_train_merged['ANNUITY_INCOME_RATIO'] = application_train_merged['AMT_ANNUITY_x'] / (application_train_merged['AMT_INCOME_TOTAL'] + epsilon)
-application_test_merged['ANNUITY_INCOME_RATIO'] = application_test_merged['AMT_ANNUITY_x'] / (application_test_merged['AMT_INCOME_TOTAL'] + epsilon)
-application_train_merged['CREDIT_GOODS_PRICE_RATIO'] = application_train_merged['AMT_CREDIT_x'] / (application_train_merged['AMT_GOODS_PRICE_x'] + epsilon)
-application_test_merged['CREDIT_GOODS_PRICE_RATIO'] = application_test_merged['AMT_CREDIT_x'] / (application_test_merged['AMT_GOODS_PRICE_x'] + epsilon)
-application_train_merged['DAYS_EMPLOYED_PER_BIRTH'] = application_train_merged['DAYS_EMPLOYED'] / (application_train_merged['DAYS_BIRTH'] + epsilon)
-application_test_merged['DAYS_EMPLOYED_PER_BIRTH'] = application_train_merged['DAYS_EMPLOYED'] / (application_train_merged['DAYS_BIRTH'] + epsilon)
-application_train_merged.replace([np.inf, -np.inf], np.nan, inplace=True)
-application_test_merged.replace([np.inf, -np.inf], np.nan, inplace=True)
+for df in [application_train_merged, application_test_merged]:
+    df['INCOME_CREDIT_RATIO'] = df['AMT_INCOME_TOTAL'] / (df['AMT_CREDIT_x'] + epsilon)
+    df['ANNUITY_INCOME_RATIO'] = df['AMT_ANNUITY_x'] / (df['AMT_INCOME_TOTAL'] + epsilon)
+    df['CREDIT_GOODS_PRICE_RATIO'] = df['AMT_CREDIT_x'] / (df['AMT_GOODS_PRICE_x'] + epsilon)
+    df['DAYS_EMPLOYED_PER_BIRTH'] = df['DAYS_EMPLOYED'] / (df['DAYS_BIRTH'] + epsilon)  # Fixed: Use df's own columns
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
 # Checkpoint: Save featured dataframes
 application_train_merged.to_csv(base_path + 'application_train_featured.csv', index=False)
@@ -229,17 +224,20 @@ plt.ylabel('Feature')
 plt.gca().invert_yaxis()
 plt.show()
 
-# Explanation of Important Features
-print("\n--- Explanation of Important Features ---")
-print("Top important features:")
-print("- EXT_SOURCE_2: External score from bureau data; high values indicate good credit history, reducing default risk.")
-print("- EXT_SOURCE_3: Similar to EXT_SOURCE_2, but from a different source; helps identify high-risk customers.")
-print("- AMT_CREDIT_x: Credit amount; customers with larger credits may be more stable, but further analysis needed.")
-print("Overall, external features dominate because historical credit data is more predictive than application data alone.")
-
 # Address Class Imbalance (SMOTE)
 smote = SMOTE(random_state=42)
 X_resampled, y_resampled = smote.fit_resample(X[selected_features], y)
+
+# Visualizing TARGET before and after SMOTE
+fig = plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+sns.countplot(x=y)
+plt.title('TARGET Distribution Before SMOTE')
+plt.subplot(1, 2, 2)
+sns.countplot(x=y_resampled)
+plt.title('TARGET Distribution After SMOTE')
+plt.tight_layout()
+plt.show()
 
 # Feature Selection
 X_resampled_selected = X_resampled[selected_features]
@@ -250,25 +248,33 @@ X_train, X_val, y_train, y_val = train_test_split(X_resampled_selected, y_resamp
 X_train = X_train.replace([np.inf, -np.inf], np.nan).fillna(0)
 X_val = X_val.replace([np.inf, -np.inf], np.nan).fillna(0)
 
+def evaluate_model(model, X_train, y_train, X_val, y_val):
+    model.fit(X_train, y_train)
+    y_pred_proba = model.predict_proba(X_val)[:, 1]
+    roc_auc_val = roc_auc_score(y_val, y_pred_proba)
+    return {"model": model, "roc_auc": roc_auc_val, "y_pred_proba": y_pred_proba}
+
 models = {
-    "Logistic Regression": LogisticRegression(random_state=42, solver='liblinear'),
+    "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42, solver='liblinear'),
     "Decision Tree": DecisionTreeClassifier(random_state=42),
-    "Random Forest": RandomForestClassifier(random_state=42, n_jobs=-1)
+    "Random Forest": RandomForestClassifier(random_state=42, n_jobs=-1),
+    "SVM": SVC(probability=True, kernel='rbf', C=1.0, random_state=42),
+    "Naive Bayes": GaussianNB(),
+    "KNN": KNeighborsClassifier(n_neighbors=5),
+    "Gradient Boosting": GradientBoostingClassifier(n_estimators=50, learning_rate=0.1, max_depth=3, random_state=42)
 }
+
 results = {}
+
 for name, model in models.items():
     if name == "Logistic Regression":
         param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
-        grid_search = RandomizedSearchCV(LogisticRegression(random_state=42, solver='liblinear'), param_grid, n_iter=5, cv=3, scoring='roc_auc', random_state=42, n_jobs=1)
+        grid_search = RandomizedSearchCV(model, param_grid, n_iter=5, cv=3,
+                                         scoring='roc_auc', random_state=42, n_jobs=1)
         grid_search.fit(X_train, y_train)
         model = grid_search.best_estimator_
-    model.fit(X_train, y_train)
-    y_pred_proba = model.predict_proba(X_val)[:, 1]
-    roc_auc = roc_auc_score(y_val, y_pred_proba)
-    results[name] = {"model": model, "roc_auc": roc_auc, "y_pred_proba": y_pred_proba}
 
-# Train Additional Models (SVM, Naive Bayes, KNN, Gradient Boosting)
-# (Additional training code remains the same, but shortened for efficiency)
+    results[name] = evaluate_model(model, X_train, y_train, X_val, y_val)
 
 # Hyperparameter Tuning for Random Forest
 param_dist = {'n_estimators': [100, 200], 'max_depth': [10, 20, None], 'min_samples_split': [2, 5], 'min_samples_leaf': [1, 2], 'bootstrap': [True, False]}
@@ -314,7 +320,62 @@ plt.title('ROC Curve Comparison')
 plt.legend()
 plt.show()
 
-print("Conclusion: Random Forest or Voting Classifier has the highest ROC-AUC, indicating best performance for handling imbalanced data.")
+# Robust cross-validation
+# 1) Basic checks & cleanup
+# Ensure numeric, no inf/nan
+X_res = X_resampled_selected.replace([np.inf, -np.inf], np.nan).fillna(0)
+y_res = y_resampled.copy()
+X_test_final = X_test_selected.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+print("Shapes -> X_res:", X_res.shape, "y_res:", y_res.shape, "X_test:", X_test_final.shape)
+
+# 2) Prepare Stratified K-Fold
+n_splits = 3
+skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+# 3) VOTING CLASSIFIER (SOFT VOTING)
+voting_clf = VotingClassifier(
+    estimators=[
+        ('rf', best_rf_model),
+        ('gb', gb_model),
+        ('lr', lr_model)
+    ],
+    voting='soft',
+    n_jobs=-1
+)
+
+models_cv = {
+    "RandomForest_CV": best_rf_model,
+    "KNN_CV": knn_model,
+    "GradientBoosting_CV": gb_model,
+    "VotingClassifier_CV": voting_clf
+}
+
+# 4) Perform Stratified K-Fold CV and report mean/std of ROC-AUC
+cv_results = {}
+for name, mdl in models_cv.items():
+    print(f"\nRunning Stratified {n_splits}-Fold CV for: {name}")
+    try:
+        scores = cross_val_score(mdl, X_res, y_res, cv=skf, scoring='roc_auc', n_jobs=-1)
+        mean_score = scores.mean()
+        std_score = scores.std()
+        cv_results[name] = {"mean_auc": mean_score, "std_auc": std_score, "fold_scores": scores}
+        print(f"{name} -> ROC AUC per fold: {np.round(scores,4)}")
+        print(f"{name} -> Mean ROC AUC: {mean_score:.4f} | Std: {std_score:.4f}")
+    except Exception as e:
+        print(f"Error during CV for {name}: {e}")
+
+# 5) Summarize CV results
+summary_rows = []
+for k, v in cv_results.items():
+    summary_rows.append((k, v['mean_auc'], v['std_auc']))
+summary_df = pd.DataFrame(summary_rows, columns=['Model','Mean_ROC_AUC','Std_ROC_AUC']).sort_values(by='Mean_ROC_AUC', ascending=False)
+print("\nCross-Validation Summary:")
+print(summary_df.to_string(index=False))
+
+# 6) Identify best model from CV results
+best_name = max(cv_results.keys(), key=lambda k: cv_results[k]['mean_auc'])
+print(f"\nBest model from CV: {best_name} with mean ROC AUC = {cv_results[best_name]['mean_auc']:.4f}")
 
 # Business Recommendations (Feedback Improvement)
 print("\n--- Business Recommendations ---")
