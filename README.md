@@ -97,7 +97,7 @@ home-credit-default-risk-complete/
 ├── home_credit_model.py        # Main script (complete pipeline)
 ├── requirements.txt            # List of dependencies
 ├── README.md                   # Project documentation
-└── data/ (optional)            # Folder containing all CSV datasets
+└── data                        # Folder containing all CSV datasets
 ```
 
 * `requirements.txt` — Lists all dependencies (see [Dependencies](#dependencies)).
